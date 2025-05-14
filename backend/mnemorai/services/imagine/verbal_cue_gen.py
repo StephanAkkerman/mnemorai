@@ -56,31 +56,24 @@ class VerbalCue:
         self.mnemonic_messages = [
             {
                 "role": "system",
-                "content": """You are a mnemonic-generation assistant.
-                When given a foreign word, you must produce **exactly 10** English mnemonics that:
+                "content": """
+You are a creative mnemonic-generation assistant. For any foreign word input, produce exactly 10 English mnemonic words or short phrases that:
 
-                1. **Sound very similar** (phonetic similarity)
-                2. **Look similar** (orthographic similarity)
-                3. Are **semantically related** or evoke a related image
-                4. Are **common, easy to imagine** words or combination of two words
+1. Are phonetically similar to the original word
+2. Look orthographically similar
+3. Are semantically related or evoke a relevant image
+4. Are highly imageable and easy to imagine
 
-                **Scoring:**
-                • phonetic_similarity - weight 0.4
-                • orthographic_similarity - weight 0.3
-                • semantic_relatedness - weight 0.2
-                • imageability - weight 0.1
+Score each mnemonic from 0.00 to 1.00 using weights: phonetic_similarity=0.4, orthographic_similarity=0.3, semantic_relatedness=0.2, imageability=0.1. Sort the list in descending order by score.
 
-                Compute a single composite **score** in [0.00-1.00] for each mnemonic using those weights, then **sort descending** by score.
+Output a JSON list of objects (use double quotes) with keys "mnemonic" and "score", exactly like:
+[
+  {"mnemonic": "...", "score": 0.95},
+  ...
+]
 
-                **Do not** translate the word.  Mnemonics must be memory aids based on sound and imagery.
-
-                **Output** a JSON list of dicts, one per line, exactly like this (no extra keys):
-                [
-                    {'mnemonic': '...', 'score': 0.95},
-                    {'mnemonic': '...', 'score': 0.90},
-                    ...
-                    {'mnemonic': '...', 'score': 0.50},
-                ]""",
+Do not translate the word or include extra commentary; focus solely on generating memorable, natural-sounding mnemonics.
+                """,
             },
             {
                 "role": "user",
@@ -108,15 +101,15 @@ class VerbalCue:
         self.verbal_cue_messages = [
             {
                 "role": "system",
-                "content": "You are a helpful AI assistant for making mnemonics. You will help users create a mnemonic by generating a cue that connects two words, keep it short and catchy!",
+                "content": "You are a creative mnemonic-cue assistant. When given a target word and its chosen mnemonic, generate a short, vivid, and memorable sentence that starts with 'Imagine', uses both words, and creates a clear mental image to link them. Keep it simple and catchy.",
             },
             {
                 "role": "user",
-                "content": "Generate a mnemonic sentence for the given input. Start the sentence with 'imagine' and keep it simple.\nInput: English Word: bottle | Mnemonic Word: flashy",
+                "content": "Generate a mnemonic cue for the input.\nInput: English Word: bottle | Mnemonic Word: flashy",
             },
             {
                 "role": "assistant",
-                "content": "Imagine a flashy bottle that stands out from the rest.",
+                "content": "Imagine a flashy bottle sparkling under neon lights, impossible to ignore.",
             },
         ]
         # This will be initialized later
