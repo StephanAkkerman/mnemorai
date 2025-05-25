@@ -5,13 +5,11 @@ import FormField from "./ui/FormField";
 import Button from "./ui/Button";
 import { createCard } from "../app/api/createCard";
 import { getSupportedLanguages } from "@/app/api/languageService";
-import SaveToAnki from "./SaveToAnki";
 import { Card, CreateCardRequest } from "@/interfaces/CardInterfaces";
 import { ModelOptions } from "@/interfaces/ModelInterface";
 import { ModelService } from "@/services/modelService";
 
 interface CardGeneratorProps {
-  card: Card | null;
   onCardCreated: (card: Card) => void;
   onLoading: (loading: boolean) => void;
   onError: (error: string) => void;
@@ -21,7 +19,6 @@ interface CardGeneratorProps {
 const modelService = new ModelService();
 
 export default function CardGenerator({
-  card,
   onCardCreated,
   onLoading,
   onError,
@@ -45,11 +42,13 @@ export default function CardGenerator({
     word: ""
   });
   const [showAdvanced, setShowAdvanced] = useState(false);
-
+  const [loading, setLoading] = useState(false);
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
         onLoading(true);
+        setLoading(true);
         const [languageResponse, modelResponse] = await Promise.all([
           getSupportedLanguages(),
           modelService.getAvailableModels()
@@ -62,6 +61,7 @@ export default function CardGenerator({
         onError("Failed to load data.");
       } finally {
         onLoading(false);
+        setLoading(false);
       }
     };
 
@@ -87,6 +87,7 @@ export default function CardGenerator({
     if (!validate()) return;
 
     onLoading(true);
+    setLoading(true);
     onError("");
 
     try {
@@ -96,6 +97,7 @@ export default function CardGenerator({
       onError(err.message || "An unexpected error occurred.");
     } finally {
       onLoading(false);
+      setLoading(false);
     }
   };
 
@@ -208,20 +210,12 @@ export default function CardGenerator({
               text="Create Card"
               variant="primary"
               type="submit"
+              disabled={loading}
               className="w-full py-3 text-lg font-bold transform hover:scale-105 transition-transform duration-200 hover:shadow-lg mt-6"
             />
           </form>
         </div>
       </div>
-
-      {card && (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 transition-all duration-300 mt-8">
-          <div className="p-6">
-            <h3 className="text-xl font-bold mb-4">Save to Anki</h3>
-            <SaveToAnki card={card} onError={onError} />
-          </div>
-        </div>
-      )}
     </>
   );
 }

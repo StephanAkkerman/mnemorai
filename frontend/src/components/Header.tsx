@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import logo from "../../public/logo.png";
+import lightLogo from "../../public/Main Logo (light).svg";
+import darkLogo from "../../public/Main Logo (dark).svg";
 import { Sun, Moon, Menu, X } from "lucide-react";
 
 export default function Header() {
@@ -39,7 +40,7 @@ export default function Header() {
             <Link href="/" className="flex items-center space-x-3">
               <div className="relative w-10 h-10 transition-transform duration-300 hover:rotate-12">
                 <Image
-                  src={logo}
+                  src={darkMode ? darkLogo : lightLogo}
                   alt="mnemorai Logo"
                   className="object-contain"
                   fill
@@ -60,6 +61,9 @@ export default function Header() {
               className="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 font-medium transition-colors"
             >
               Home
+            </Link>
+            <Link href="/card-gen" className="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 font-medium transition-colors">
+              Card Generation
             </Link>
             <Link
               href="/library"
@@ -106,6 +110,13 @@ export default function Header() {
             onClick={() => setMobileMenuOpen(false)}
           >
             Home
+          </Link>
+          <Link
+            href="/card-gen"
+            className="block py-2 text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 font-medium"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Card Generation
           </Link>
           <Link
             href="/library"

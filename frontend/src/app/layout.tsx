@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import StatusChecker from "@/components/StatusChecker";
 import { ToastProvider } from "@/contexts/ToastContext";
 import type { Metadata } from "next";
@@ -26,9 +27,7 @@ export default function RootLayout({
             {children}
           </main>
           <StatusChecker />
-          <footer className="text-center p-6 text-gray-500 dark:text-gray-400 text-sm">
-            <p>© 2025 mnemorai • Made with ❤️ for language learners</p>
-          </footer>
+          <Footer />
         </ToastProvider>
       </body>
     </html>

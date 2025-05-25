@@ -281,6 +281,7 @@ const FlashcardLibrary = () => {
                   card={card}
                   isLoading={false}
                   showFront={true}
+                  disableEdit={false}
                   onCardUpdate={(updatedCard) => handleCardUpdate(updatedCard, index)}
                 />
               </div>

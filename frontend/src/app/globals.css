@@ -37,6 +37,63 @@ body {
   transform: rotateY(180deg);
 }
 
+@keyframes fadeInGlow {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+    filter: drop-shadow(0 0 0 rgba(52, 144, 220, 0));
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 10px rgba(var(--prime), 0.7));
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: drop-shadow(0 0 5px rgba(var(--prime), 0.5));
+  }
+}
+
+.animate-fadeInGlow {
+  animation: fadeInGlow 1s ease-in-out forwards;
+}
+
+@keyframes textFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(20px);
+  }
+}
+
+.animate-textFadeIn {
+  /* Ensure the element starts hidden */
+  opacity: 0;
+  animation: textFadeIn 1s ease forwards;
+  animation-delay: 0.5s;
+}
+
+@keyframes ringFill {
+  0% {
+    stroke-dashoffset: 282.743;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-ringFill {
+  animation: ringFill 2.5s ease-in-out forwards;
+}
+
 .gradient-text {
   @apply text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-teal-400;
 }
