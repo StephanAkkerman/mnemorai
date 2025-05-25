@@ -1,27 +1,26 @@
 # Torch dependencies
-torch==2.5.1
-torchaudio==2.5.1
-torchvision==0.20.1
+torch==2.7.0
 # Huggingface dependencies
-transformers[sentencepiece]==4.47.1
+transformers[sentencepiece]==4.51.3
 diffusers==0.33.1
-datasets==3.6.0
-accelerate==1.7.0
+datasets==3.5.0
+accelerate==1.5.2
 huggingface-hub==0.30.2
 bitsandbytes==0.45.5
 peft==0.15.2
 # Common dependencies
-numpy==1.26.4
+numpy==2.2.6
 pandas==2.2.3
-# Translation dependencies
+# TTS
 gtts==2.5.4
+# Translation dependencies
 googletrans==4.0.2
 pycountry==24.6.1
 # API dependencies
 fastapi==0.115.12
 uvicorn[standard]==0.34.1
 # Performance dependencies
-xformers==0.0.29
+xformers==0.0.30
 # flash_attn==2.7.3; sys_platform == 'linux'
-triton-windows<3.2; sys_platform == 'win32' # for torch > 2.4
-triton==3.1.0; sys_platform == 'linux'
+triton-windows==3.3.0.post19; sys_platform == 'win32'
+triton==3.3.0; sys_platform == 'linux'
