@@ -19,7 +19,7 @@ googletrans==4.0.2
 pycountry==24.6.1
 # API dependencies
 fastapi==0.115.12
-uvicorn[standard]==0.34.1
+uvicorn[standard]==0.34.2
 # Performance dependencies
 xformers==0.0.30
 # flash_attn==2.7.3; sys_platform == 'linux'
