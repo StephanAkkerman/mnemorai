@@ -27,29 +27,28 @@ const Footer = () => {
                             <div>
                                 <h3 className="text-lg font-semibold mb-4">Product</h3>
                                 <ul className="space-y-2">
-                                    <li><a href="#" className="text-gray-400 hover:text-white">Features</a></li>
-                                    <li><a href="#" className="text-gray-400 hover:text-white">Pricing</a></li>
-                                    <li><a href="#" className="text-gray-400 hover:text-white">Languages</a></li>
+                                    <li><a href="https://demo.mnemorai.com/card-gen" className="text-gray-400 hover:text-white">Card Generation</a></li>
+                                    <li><a href="https://demo.mnemorai.com/library" className="text-gray-400 hover:text-white">Library</a></li>
                                 </ul>
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-semibold mb-4">Company</h3>
+                                <h3 className="text-lg font-semibold mb-4">Contact</h3>
                                 <ul className="space-y-2">
-                                    <li><a href="#" className="text-gray-400 hover:text-white">About</a></li>
-                                    <li><a href="#" className="text-gray-400 hover:text-white">Blog</a></li>
-                                    <li><a href="#" className="text-gray-400 hover:text-white">Contact</a></li>
+                                    <li><a href="https://github.com/StephanAkkerman/mnemorai" className="text-gray-400 hover:text-white">Github</a></li>
+                                    <li><a href="https://discord.gg/VZMxzdnv" className="text-gray-400 hover:text-white">Discord</a></li>
+                                    <li><a href="mailto:mnemorai@gmail.com" className="text-gray-400 hover:text-white">Mail</a></li>
                                 </ul>
                             </div>
 
-                            <div>
+                            {/* <div>
                                 <h3 className="text-lg font-semibold mb-4">Legal</h3>
                                 <ul className="space-y-2">
                                     <li><a href="#" className="text-gray-400 hover:text-white">Terms</a></li>
                                     <li><a href="#" className="text-gray-400 hover:text-white">Privacy</a></li>
                                     <li><a href="#" className="text-gray-400 hover:text-white">Cookies</a></li>
                                 </ul>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 

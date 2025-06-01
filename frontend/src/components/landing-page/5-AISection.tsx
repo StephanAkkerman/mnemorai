@@ -177,7 +177,7 @@ const AIPage: React.FC = () => {
               <Button
                 text="Try Mnemorai Now"
                 variant="primary"
-                onClick={() => console.log("CTA Clicked!")}
+                link="https://demo.mnemorai.com/card-gen"
                 className="px-6 py-2.5 sm:px-8 sm:py-3 text-base sm:text-lg"
               />
             </motion.div>
