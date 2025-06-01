@@ -29,9 +29,9 @@ const CTASection = () => {
                     initial={{ y: "50%", opacity: "0%" }}
                     animate={isInView ? { y: "0%", opacity: "100%" } : { y: "50%", opacity: "0%" }}
                     transition={{ duration: 1, ease: "easeOut" }}
-
+                    viewport={{ once: true }}
                 >
-                    <Button text="Sign Up Free" />
+                    <Button text="Create your card now" link="https://demo.mnemorai.com/card-gen" />
                 </motion.div>
 
             </div>

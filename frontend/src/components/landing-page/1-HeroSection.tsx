@@ -124,7 +124,7 @@ const HeroSection = () => {
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -15 }}
     >
       {/* This is the container that stays fixed in the viewport */}
-      <div className="sticky top-[15%] h-screen w-full overflow-hidden flex justify-center">
+      <div className="sticky top-[15%] h-screen w-full overflow-hidden flex justify-center min-h-[750px] sm:min-h-[900px]">
         {/* Content Container */}
         <div className="absolute inset-0 w-full h-full max-h-[400px] flex items-center justify-center z-40">
           {/* Text Content - positioned absolute */}
@@ -186,8 +186,8 @@ const HeroSection = () => {
                 learning engaging and effective.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Button text="Get Started" onClick={() => { }} />
-                <Button text="See Demo" onClick={() => { }} />
+                <Button text="Get Started" link="https://demo.mnemorai.com/card-gen" />
+                <Button text="View on Github" link="https://github.com/StephanAkkerman/mnemorai" />
               </div>
             </motion.div>
           </motion.div>

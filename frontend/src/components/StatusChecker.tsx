@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { ANKI_CONFIG } from "@/config/constants";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -11,16 +12,19 @@ interface APIStatus {
 }
 
 export default function StatusChecker() {
+  const pathname = usePathname();
+  // Moved toast context hook up as it's needed even when on homepage to hide toasts
   const { showToast, hideAllToasts } = useToast();
+
   const statusesRef = useRef<APIStatus[]>([
     { name: "AnkiConnect", description: "Anki synchronization", available: null },
     { name: "Card Generator", description: "Card creation API", available: null },
   ]);
 
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isMounted = useRef(true);
+  const isMounted = useRef(true); // To track if component is mounted for async operations
 
-  // Define the API status check function
+  // Define the API status check function (no changes here)
   const checkAPIStatus = async (name: string): Promise<boolean> => {
     try {
       if (name === "AnkiConnect") {
@@ -47,10 +51,12 @@ export default function StatusChecker() {
     }
   };
 
-  // Cleanup when component unmounts
+  // Effect for mount/unmount status
   useEffect(() => {
+    isMounted.current = true;
     return () => {
       isMounted.current = false;
+      // General cleanup for interval if component fully unmounts
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
@@ -58,39 +64,44 @@ export default function StatusChecker() {
     };
   }, []);
 
-  // Set up the polling mechanism
-  const POLLING_INTERVAL = 5000; // 5 seconds between checks
-  const SUCCESS_DISPLAY_TIME = 3000; // 3 seconds to display success
 
+  const POLLING_INTERVAL = 5000;
+  const SUCCESS_DISPLAY_TIME = 3000;
+
+  // Main effect for polling and toast logic, now dependent on pathname
   useEffect(() => {
-    // Function to check all statuses at once
+
+    if (pathname === "/") {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      hideAllToasts(); // Crucial: hide toasts when navigating to or on the homepage
+      return;
+    }
+
+    // --- Logic for non-homepage paths ---
+
     const checkAllStatuses = async () => {
       if (!isMounted.current) return;
 
-      // Create a copy to work with
       const currentStatuses = [...statusesRef.current];
       const updatedStatuses = [...currentStatuses];
       const recoveredServices: string[] = [];
       let hasServiceDown = false;
       let statusChanged = false;
 
-      // Check each service
       for (let i = 0; i < updatedStatuses.length; i++) {
         const status = updatedStatuses[i];
         const isAvailable = await checkAPIStatus(status.name);
 
-        // If status changed from not available to available (true transition)
         if (status.available === false && isAvailable) {
           updatedStatuses[i] = { ...status, available: true };
           recoveredServices.push(status.name);
           statusChanged = true;
-        }
-        // If checking for the first time and it's available
-        else if (status.available === null && isAvailable) {
+        } else if (status.available === null && isAvailable) {
           updatedStatuses[i] = { ...status, available: true };
-        }
-        // If service is unavailable
-        else if (!isAvailable) {
+        } else if (!isAvailable) {
           if (status.available !== false) {
             statusChanged = true;
           }
@@ -99,76 +110,72 @@ export default function StatusChecker() {
         }
       }
 
-      // Update statuses ref
       statusesRef.current = updatedStatuses;
 
-      // Show appropriate toast notifications
       if (statusChanged) {
-        // Clear existing toasts when status changes
         hideAllToasts();
 
-        // If any service was recovered, show a success toast for it
         if (recoveredServices.length > 0) {
-          // Show success toast for specifically recovered services
           showToast({
             type: 'success',
             title: `Service${recoveredServices.length > 1 ? 's' : ''} Recovered`,
             message: `${recoveredServices.join(", ")} ${recoveredServices.length > 1 ? 'are' : 'is'} now available.`,
-            duration: SUCCESS_DISPLAY_TIME // Show longer so users notice it
+            duration: SUCCESS_DISPLAY_TIME
           });
         }
 
-        // If we still have services down, show an error toast after a brief delay
-        // This prevents the toasts from appearing simultaneously
         if (hasServiceDown) {
           setTimeout(() => {
             if (!isMounted.current) return;
-
             const unavailableServices = statusesRef.current
               .filter(s => s.available === false)
               .map(s => s.name)
               .join(", ");
-
-            showToast({
-              type: 'error',
-              title: 'Service Interruption',
-              message: `${unavailableServices} ${statusesRef.current.filter(s => s.available === false).length > 1 ? 'are' : 'is'} unavailable. Please check your connections.`,
-              duration: 0 // Keep until resolved
-            });
-          }, recoveredServices.length > 0 ? 300 : 0); // Small delay if we just showed a recovery toast
+            if (unavailableServices) { // Only show if there are actually unavailable services
+              showToast({
+                type: 'error',
+                title: 'Service Interruption',
+                message: `${unavailableServices} ${statusesRef.current.filter(s => s.available === false).length > 1 ? 'are' : 'is'} unavailable. Please check your connections.`,
+                duration: 0
+              });
+            }
+          }, recoveredServices.length > 0 ? 300 : 0);
         } else if (recoveredServices.length > 0) {
-          // If all services are up after some were down, show an additional "all clear" notification
           setTimeout(() => {
             if (!isMounted.current) return;
-
             showToast({
               type: 'info',
               title: 'All Systems Operational',
               message: 'All services are now running properly.',
               duration: SUCCESS_DISPLAY_TIME
             });
-          }, 300); // Small delay after the recovery toast
+          }, 300);
         }
       }
     };
 
-    // Run initial check
+    // Run initial check only if not on homepage (already handled by the if (pathname === "/") check)
     checkAllStatuses();
 
-    // Set up single polling interval (only if not already set)
+    // Set up polling interval only if not already set and not on homepage
     if (!pollingIntervalRef.current) {
       pollingIntervalRef.current = setInterval(checkAllStatuses, POLLING_INTERVAL);
     }
 
-    // Cleanup on effect change
+    // Cleanup for this effect:
+
     return () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
       }
-    };
-  }, [showToast, hideAllToasts]); // Include toast functions as dependencies
 
-  // This component doesn't render anything visible on its own now
+    };
+  }, [pathname, showToast, hideAllToasts]);
+
+  if (pathname === "/") {
+    return null;
+  }
+
   return null;
 }

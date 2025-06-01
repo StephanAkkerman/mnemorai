@@ -8,6 +8,7 @@ interface ButtonProps {
   className?: string;
   disabled?: boolean;
   children?: React.ReactNode;
+  link?: string;
 }
 
 export default function Button({
@@ -17,7 +18,8 @@ export default function Button({
   variant = "primary",
   className = "",
   disabled = false,
-  children, // Destructure children
+  link,
+  children,
 }: ButtonProps) {
   const baseStyles =
     "px-4 py-2 rounded-md font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2";
@@ -33,10 +35,21 @@ export default function Button({
     ? "opacity-50 cursor-not-allowed pointer-events-none"
     : "";
 
+
+  const handleClick = () => {
+    if (disabled) { return };
+
+    onClick?.()
+
+    if (link) {
+      window.location.assign(link)
+    }
+  }
+
   return (
     <button
       type={type}
-      onClick={onClick}
+      onClick={handleClick}
       disabled={disabled}
       className={`${baseStyles} ${variants[variant]} ${disabledStyles} ${className}`}
     >

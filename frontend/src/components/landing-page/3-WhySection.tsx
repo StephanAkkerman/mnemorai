@@ -1,12 +1,16 @@
 "use client"
 import React, { useRef, useEffect, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import {
+  motion,
+  useScroll,
+  useTransform
+} from "framer-motion";
 import { ThreeDMarquee } from "../ui/3d-marquee";
 
 const WhySection = () => {
   const sectionRef = useRef(null);
   const titleRef = useRef(null);
-  const [shouldShowContent, setShouldShowContent] = useState(false);
+
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
@@ -15,6 +19,7 @@ const WhySection = () => {
         setWindowSize({ width: window.innerWidth, height: window.innerHeight });
       }
     }
+
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
@@ -44,24 +49,13 @@ const WhySection = () => {
     [0.8, 1.1]
   );
 
-  useEffect(() => {
-    const unsubscribe = scrollYProgress.onChange(value => {
-      setShouldShowContent(value >= 0.3);
-    });
-    return () => unsubscribe();
-  }, [scrollYProgress, isMobileDevice]);
-
   // Sample images array
-  const images = Array(16).fill("/logo.png");
-
-
+  const images = isMobileDevice ? Array(3).fill("/logo.png") : Array(16).fill("/logo.png")
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 30 },
     visible: { opacity: 1, y: 0 }
   };
-
-
 
   return (
     <section
@@ -226,7 +220,10 @@ const WhySection = () => {
 
           >
             <div className="mt-20 sm:mt-10">
-              <button className="px-6 py-2.5 sm:px-8 sm:py-3 md:px-10 md:py-4  bg-gradient-to-r from-blue-600 to-teal-500 text-white font-semibold text-base sm:text-lg rounded-xl hover:shadow-lg hover:shadow-blue-500/30 hover:scale-105 transition-all duration-300 relative group overflow-hidden">
+              <button className="px-6 py-2.5 sm:px-8 sm:py-3 md:px-10 md:py-4  bg-gradient-to-r from-blue-600 to-teal-500 text-white font-semibold text-base sm:text-lg rounded-xl hover:shadow-lg hover:shadow-blue-500/30 hover:scale-105 transition-all duration-300 relative group overflow-hidden"
+                onClick={() => {
+                  window.location.assign("https://demo.mnemorai.com/card-gen")
+                }}>
                 <span className="relative z-10">Start Learning Smarter</span>
                 <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></span>
               </button>

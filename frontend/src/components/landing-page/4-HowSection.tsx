@@ -230,7 +230,7 @@ const HowSection: React.FC = () => {
       <div className="sticky top-0 h-screen max-h-[1000px] w-full overflow-hidden flex flex-col items-center justify-center">
 
         {/* Max width container for content, centered */}
-        <div className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 h-full flex flex-col items-center justify-center pt-16 sm:pt-20">
+        <div className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 h-full flex flex-col items-center justify-center pt-16 sm:pt-20 ">
 
           {/* --- Title Area --- */}
           <motion.div
@@ -245,7 +245,7 @@ const HowSection: React.FC = () => {
           </motion.div>
 
           {/* --- Main Content Area (Switches between steps and final card) --- */}
-          <div className="relative w-full flex-grow flex flex-col items-center justify-center mt-16 md:mt-20">
+          <div className="relative w-full flex-grow flex flex-col items-center justify-center mt-16 md:mt-20 min-h-[500px]">
             <AnimatePresence mode="wait">
               {!showCard ? (
                 /* --- Scrolling Steps View --- */
@@ -329,7 +329,7 @@ const HowSection: React.FC = () => {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3, delay: 0.01 }} // Slight delay after steps fade
-                  className="w-full  flex flex-col items-center justify-center text-center"
+                  className="w-full  flex flex-col items-center justify-center text-center sm:mt-0 -mt-28"
                 >
                   {/* Et Voilà Title */}
                   <motion.div
@@ -366,7 +366,11 @@ const HowSection: React.FC = () => {
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.6 }}
                   >
-                    <button className="px-6 md:px-8 py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-teal-500 text-white font-medium rounded-full shadow-md hover:shadow-lg hover:shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-900 transform hover:scale-105 transition-all duration-300 text-sm md:text-base">
+                    <button className="px-6 md:px-8 py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-teal-500 text-white font-medium rounded-full shadow-md hover:shadow-lg hover:shadow-blue-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 
+                    focus:ring-blue-500 focus:ring-offset-gray-900 transform hover:scale-105 transition-all duration-300 text-sm md:text-base"
+                      onClick={() => {
+                        window.location.assign("https://demo.mnemorai.com/card-gen")
+                      }}>
                       Try It Now
                     </button>
                   </motion.div>
