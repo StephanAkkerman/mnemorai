@@ -16,6 +16,13 @@ gtts==2.5.4
 # Translation dependencies
 googletrans==4.0.2
 pycountry==24.6.1
+# Splitting dependencies
+pyphen==0.17.2
+lingpy==2.6.13
+epitran==1.26.0
+# Bigram dependencies
+nltk==3.9.1
+wordfreq==3.1.1
 # API dependencies
 fastapi==0.115.12
 uvicorn[standard]==0.34.3
