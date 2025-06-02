@@ -22,5 +22,5 @@ uvicorn[standard]==0.34.2
 # Performance dependencies
 xformers==0.0.30
 # flash_attn==2.7.3; sys_platform == 'linux'
-triton-windows==3.3.0.post19; sys_platform == 'win32'
+triton-windows==3.3.1.post19; sys_platform == 'win32'
 triton==3.3.0; sys_platform == 'linux'
