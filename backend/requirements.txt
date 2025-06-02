@@ -6,7 +6,7 @@ diffusers==0.33.1
 accelerate==1.7.0
 datasets==3.6.0
 huggingface-hub==0.30.2
-bitsandbytes==0.45.5
+bitsandbytes==0.46.0
 peft==0.15.2
 # Common dependencies
 numpy==2.2.6
