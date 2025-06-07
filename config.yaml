@@ -15,13 +15,13 @@ G2P:
 LLM:
   # We recommend the models from unsloth: https://docs.unsloth.ai/get-started/all-our-models
   SMALL_MODEL: 
-    NAME: "unsloth/Qwen2.5-3B-Instruct-bnb-4bit" 
+    NAME: "unsloth/gemma-3-4b-it-unsloth-bnb-4bit" 
     VRAM: 3 # 3GB vram
   MEDIUM_MODEL: 
     NAME: "unsloth/Qwen2.5-7B-Instruct-bnb-4bit"
     VRAM: 6 # 6GB vram
   LARGE_MODEL: 
-    NAME: "unsloth/Qwen2.5-14B-Instruct-bnb-4bit"
+    NAME: "unsloth/gemma-3-12b-it-unsloth-bnb-4bit"
     VRAM: 9 # 9GB vram
   # Options are: None, 4bit, 8bit
   # Use None if you use an unsloth model (these are already quantized)

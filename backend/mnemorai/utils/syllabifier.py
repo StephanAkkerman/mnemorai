@@ -1,9 +1,12 @@
-from typing import List, Literal
+from typing import Literal
 
 import epitran
 import pycountry
 import pyphen
 from lingpy.sequence.sound_classes import ipa2tokens, syllabify
+
+from mnemorai.constants.languages import EPITRAN_LANGCODES
+from mnemorai.logger import logger
 
 # ---------- tiny registry ----------
 _PYPHEN_LANGS = {k.split("_")[0]: k for k in pyphen.LANGUAGES}  # "id" → "id_ID"
@@ -12,8 +15,9 @@ _EPI_CACHE: dict[str, epitran.Epitran] = {}  # hold compiled epitran objects
 
 # A small override map for languages that don’t follow the simple “ISO3-Latn” pattern
 _OVERRIDES: dict[str, str] = {
-    "zh": "cmn-Hans",  # Mandarin (Simplified)
-    "zh-tw": "cmn-Hant",  # Mandarin (Traditional) – if you need region-specific variants
+    "zh": "cmn-Latn",  # Use pinyin for Chinese
+    "zh-cn": "cmn-Latn",
+    "zh-tw": "cmn-Latn",
     "sr": "srp-Cyrl",  # Serbian defaults to Cyrillic
     "sr-latn": "srp-Latn",  # Serbian Latin
     # …add other exceptions here as needed…
@@ -98,9 +102,6 @@ def _map_to_epitran_lang(lang: str) -> str:
     return epitag
 
 
-_EPI_CACHE: dict[str, epitran.Epitran] = {}
-
-
 def _align_ipa_to_orth(
     ipa_syllables: list[str], word: str, epi: epitran.Epitran
 ) -> list[str]:
@@ -149,13 +150,26 @@ def _epitran_split(word: str, lang: str) -> list[str]:
     try:
         epi_tag = _map_to_epitran_lang(lang)
     except ValueError:
-        raise
+        logger.warning(
+            f"Unsupported language code '{lang}' for Epitran syllabification."
+        )
+
+    # Check if this tag is supported by Epitran
+    if epi_tag not in EPITRAN_LANGCODES:
+        logger.warning(f"Epitran does not support the language code '{epi_tag}'. ")
+
+    if not epi_tag.endswith("-Latn"):
+        logger.warning(
+            f"Mnemorai syllabification is only supported for languages with a Latin script. "
+            f"'{epi_tag}' does not end with '-Latn'."
+        )
+        return []
 
     # 2) load or retrieve from cache
     try:
         epi = _EPI_CACHE.setdefault(epi_tag, epitran.Epitran(epi_tag))
-    except (ValueError, IOError) as exc:
-        raise ValueError(f"Failed to load Epitran model for “{epi_tag}”") from exc
+    except OSError as exc:
+        logger.warning(f"Failed to load Epitran for '{epi_tag}': {exc}. ")
 
     # 3) transliterate to IPA (e.g. "səmaŋat")
     ipa = epi.transliterate(word)
@@ -168,7 +182,7 @@ def _epitran_split(word: str, lang: str) -> list[str]:
     try:
         raw = syllabify(tokens)
     except Exception as exc:
-        raise ValueError(f"syllabify(tokens={tokens}) failed") from exc
+        logger.warning(f"Failed to syllabify '{word}' with Epitran: {exc}. ")
 
     # 5a) normalize to list-of-lists
     if raw and isinstance(raw[0], list):
@@ -225,15 +239,15 @@ def syllables(word: str, lang: str) -> list[str]:
     return pick_best(_pyphen_split(word, lang), _epitran_split(word, lang))
 
 
-def pick_best(sol1: List[str], sol2: List[str]) -> List[str]:
+def pick_best(sol1: list[str], sol2: list[str]) -> list[str]:
     """
     Return whichever solution has fewer syllable-chunks.
 
     If they're equal length, return sol1 by default.
     """
-    if sol1 is None:
+    if sol1 is None or len(sol1) == 0:
         return sol2
-    if sol2 is None:
+    if sol2 is None or len(sol2) == 0:
         return sol1
 
     if sol1 is None and sol2 is None:
@@ -243,16 +257,17 @@ def pick_best(sol1: List[str], sol2: List[str]) -> List[str]:
     return sol1 if len(sol1) <= len(sol2) else sol2
 
 
-# --- quick demo ---
 if __name__ == "__main__":
     # Note: Need to use the transliterated word as input for pyphen
-    print(syllables("semangat", "id"))  # → ['da', 'ging']
+    print(syllables("semangat", "id"))  # → ['se', 'ma', 'ngat]
     print(syllables("bonjour", "fr"))  # → ['bon', 'jour']
     print(syllables("fiesta", "es"))  # → ['fies', 'ta']
     print(syllables("schönheit", "de"))  # → ['schön', 'heit']
     print(syllables("hondsdolheid", "nl"))  # → ['honds', 'dol', 'heid']
 
-    # TODO: improve non-latin support
-    print(syllables("中文", "zh-cn"))  # → ['中', '文']
+    # For Chinese we use pinyin
+    print(syllables("Zǎoshang", "zh"))
+    print(syllables("Zhōngwén", "zh"))
 
-    # Maybe use both results and return the best one?
+    # Non latin scripts are not supported
+    print(_epitran_split("こんにちは", "jpn-Hrgn"))
