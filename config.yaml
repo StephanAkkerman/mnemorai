@@ -31,6 +31,7 @@ LLM:
   DELETE_AFTER_USE: False
   OFFLOAD: True
   PARAMS:
+    max_new_tokens: 512
     #temperature: 0.5
 
 # The model to use for generating the image

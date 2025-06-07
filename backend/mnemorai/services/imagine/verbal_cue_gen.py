@@ -1,6 +1,4 @@
-import ast
 import asyncio
-import re
 
 from peft import PeftModel
 from transformers import (
@@ -11,27 +9,35 @@ from transformers import (
 )
 
 from mnemorai.constants.config import config
-from mnemorai.constants.languages import G2P_LANGUAGES
 from mnemorai.logger import logger
 from mnemorai.services.pre.grapheme2phoneme import Grapheme2Phoneme
 from mnemorai.services.pre.translator import translate_word
 from mnemorai.utils.load_models import select_model
 from mnemorai.utils.model_mem import manage_memory
+from mnemorai.utils.ngram_probs import ngram_grid
+from mnemorai.utils.syllabifier import syllabify
 
 
-def _parse_mnemonic_list(model_output: str):
-    # 1. grab the first [...] block
-    m = re.search(r"\[.*\]", model_output, re.DOTALL)
-    if not m:
-        raise ValueError("No list literal found in response")
-    list_str = m.group(0)
+def _mnemonic_prompt_template(word: str):
+    return f"""
+Word: {word}
+Task: Brainstorm 20 ENGLISH words that sounds similar to "{word}"
+Guidelines:
+- Loose phonetic similarity is welcome.
+- You may swap or drop consonants/vowels (for instance 'd'->'th', 'g'->'k', etc.).  
+- Try to not use many extra letters than the given word  
+- No translations, no definitions—just comma-separated list, lower-case.  
+-   Try not to add any more letters  
+-   Start with the most suitable candidates first  
+Return: one line of comma-separated candidates, no explanation.
+"""
 
-    # 2. safely evaluate it into Python objects
-    options = ast.literal_eval(list_str)
 
-    # 3. pick the mnemonic with the highest score
-    best = max(options, key=lambda opt: opt["score"])
-    return best["mnemonic"]
+def _verbal_cue_prompt_template(word1: str, word2: str):
+    return f"""
+I want a mnemonic to combine "{word1}" and "{word2}" think of something that I can visualize. 
+The output will be used as a prompt for image generation, so it should be a vivid and memorable sentence.
+"""
 
 
 class VerbalCue:
@@ -40,76 +46,47 @@ class VerbalCue:
         self.offload = self.config.get("OFFLOAD")
         self.model_name = model_name if model_name else select_model(self.config)
         logger.debug(f"Selected LLM model: {self.model_name}")
-        self.g2p_model = Grapheme2Phoneme()
 
-        # Use 512 tokens as default for generation
-        self.generation_args = {
-            "max_new_tokens": 512,
-        }
-        # Add the config parameters
-        config_params = self.config.get("PARAMS")
-        if config_params:
-            self.generation_args.update(config_params)
+        self.g2p_model = Grapheme2Phoneme()
+        self.generation_args = self.config.get("PARAMS")
 
         logger.debug(f"LLM generation args: {self.generation_args}")
 
         self.mnemonic_messages = [
             {
                 "role": "system",
-                "content": """
-You are a creative mnemonic-generation assistant. For any foreign word input, produce exactly 10 English mnemonic words or short phrases that:
-
-1. Are phonetically similar to the original word
-2. Look orthographically similar
-3. Are semantically related or evoke a relevant image
-4. Are highly imageable and easy to imagine
-
-Score each mnemonic from 0.00 to 1.00 using weights: phonetic_similarity=0.4, orthographic_similarity=0.3, semantic_relatedness=0.2, imageability=0.1. Sort the list in descending order by score.
-
-Output a JSON list of objects (use double quotes) with keys "mnemonic" and "score", exactly like:
-[
-  {"mnemonic": "...", "score": 0.95},
-  ...
-]
-
-Do not translate the word or include extra commentary; focus solely on generating memorable, natural-sounding mnemonics.
-                """,
+                "content": """You are a phonetic pun generator.""",
             },
             {
                 "role": "user",
-                "content": """Generate mnemonics to remember the German word 'flasche'.""",
+                "content": _mnemonic_prompt_template("flasche"),
             },
             {
                 "role": "assistant",
-                "content": """
-                [
-                    {'mnemonic': 'flashy', 'score': 0.91},
-                    {'mnemonic': 'flash', 'score': 0.89},
-                    {'mnemonic': 'flask', 'score': 0.87},
-                    {'mnemonic': 'flasher', 'score': 0.85},
-                    {'mnemonic': 'fleshy', 'score': 0.82},
-                    {'mnemonic': 'flusher', 'score': 0.78},
-                    {'mnemonic': 'flush', 'score': 0.76},
-                    {'mnemonic': 'flash he', 'score': 0.65},
-                    {'mnemonic': 'flesh he', 'score': 0.60},
-                    {'mnemonic': 'flossier', 'score': 0.55},
-                ]
-                """,
+                "content": """flashy, flash, flask, flasher, fleshy, flusher, flush, flash he, flesh he, flossier""",
             },
         ]
 
         self.verbal_cue_messages = [
             {
                 "role": "system",
-                "content": "You are a creative mnemonic-cue assistant. When given a target word and its chosen mnemonic, generate a short, vivid, and memorable sentence that starts with 'Imagine', uses both words, and creates a clear mental image to link them. Keep it simple and catchy.",
+                "content": """
+You are an imaginative and detail-oriented visual scene generator. Your job is to take two given concepts and craft a vivid, coherent prompt suitable for AI image generation.
+For each prompt:
+    - Blend both concepts into a single, creative scene
+    - Use rich, visual language that evokes strong mental imagery
+    - Describe characters, setting, lighting, mood, and key elements
+    - Focus on being clear, cinematic, and image-friendly — no backstory, no abstract explanations
+    - If appropriate, inject a sense of whimsy, surrealism, or narrative tension
+""",
             },
             {
                 "role": "user",
-                "content": "Generate a mnemonic cue for the input.\nInput: English Word: bottle | Mnemonic Word: flashy",
+                "content": _verbal_cue_prompt_template("bottle", "flashy"),
             },
             {
                 "role": "assistant",
-                "content": "Imagine a flashy bottle sparkling under neon lights, impossible to ignore.",
+                "content": "A dazzling glass bottle standing on a velvet pedestal in a dark room, illuminated by intense, colorful spotlights. The bottle is encrusted with glittering jewels, glowing neon patterns, and emits radiant sparkles as if it's alive. Around it, confetti floats in the air, and golden beams shoot upward like it's at the center of a high-end fashion show or magic performance. The setting is glamorous and surreal, with reflections and lens flares adding to the flashy spectacle.",
             },
         ]
         # This will be initialized later
@@ -164,6 +141,40 @@ Do not translate the word or include extra commentary; focus solely on generatin
             tokenizer=self.tokenizer,
         )
 
+    def get_candidates(self, word: str):
+        final_message = {
+            "role": "user",
+            "content": _mnemonic_prompt_template(word=word),
+        }
+
+        output = self.pipe(
+            self.mnemonic_messages + [final_message], **self.generation_args
+        )
+        response = output[0]["generated_text"]
+        logger.debug(f"Generated mnemonics: {response[-1]['content']}")
+
+        # parse the string into Python objects and find best match
+        candidates = response[-1]["content"].strip().split(",")
+
+        return candidates
+
+    def get_best_candidate(self, word: str, ipa_word: str):
+        # Split word into syllables
+        syllables = syllabify(word)
+        logger.debug(f"Syllables for '{word}': {syllables}")
+
+        syllable_candidates = []
+
+        for syllable in syllables:
+            syllable_candidates.append(self.get_candidates(syllable))
+
+        # Also do this for the whole word
+        full_word_candidates = self.get_candidates(word)
+
+        # Get the n-gram probabilities for the candidates
+        syllable_probs = ngram_grid(syllable_candidates)
+        full_word_probs = ngram_grid([full_word_candidates])
+
     @manage_memory(
         targets=["model"], delete_attrs=["model", "pipe", "tokenizer"], move_kwargs={}
     )
@@ -201,20 +212,7 @@ Do not translate the word or include extra commentary; focus solely on generatin
 
         # If a keyword or key sentence is provided do not generate mnemonics
         if not (keyword or key_sentence):
-            language = G2P_LANGUAGES.get(language_code, "Unknown Language")
-            final_message = {
-                "role": "user",
-                "content": f"""Generate mnemonics to remember the {language} word '{word}'.""",
-            }
-
-            output = self.pipe(
-                self.mnemonic_messages + [final_message], **self.generation_args
-            )
-            response = output[0]["generated_text"]
-            logger.debug(f"Generated mnemonics: {response[-1]['content']}")
-
-            # parse the string into Python objects and find best match
-            best = _parse_mnemonic_list(response[-1]["content"])
+            best = self.get_best_candidate()  # TODO: fix
 
         if key_sentence:
             return best, translated_word, transliterated_word, ipa, key_sentence
