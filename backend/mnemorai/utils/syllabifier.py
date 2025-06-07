@@ -11,17 +11,6 @@ from mnemorai.logger import logger
 # ---------- tiny registry ----------
 _PYPHEN_LANGS = {k.split("_")[0]: k for k in pyphen.LANGUAGES}  # "id" → "id_ID"
 _EPI_CACHE: dict[str, epitran.Epitran] = {}  # hold compiled epitran objects
-# ------------------------------------
-
-# A small override map for languages that don’t follow the simple “ISO3-Latn” pattern
-_OVERRIDES: dict[str, str] = {
-    "zh": "cmn-Latn",  # Use pinyin for Chinese
-    "zh-cn": "cmn-Latn",
-    "zh-tw": "cmn-Latn",
-    "sr": "srp-Cyrl",  # Serbian defaults to Cyrillic
-    "sr-latn": "srp-Latn",  # Serbian Latin
-    # …add other exceptions here as needed…
-}
 
 
 def iso1_to_epi_tag(
@@ -66,15 +55,8 @@ def iso1_to_epi_tag(
     """
     key = iso_code.strip().lower()
 
-    # 1) Check for exact override (e.g. "sr", "sr-latn", "zh", "zh-tw", etc.)
-    if key in _OVERRIDES:
-        return _OVERRIDES[key]
-
     # 2) Otherwise, try to split out any region/script subtag (e.g. "sr-Latn" or "en-US")
-    base, *rest = key.split("-")
-    override_key = base if not rest else f"{base}-{rest[0]}"
-    if override_key in _OVERRIDES:
-        return _OVERRIDES[override_key]
+    base, _ = key.split("-")
 
     # 3) Lookup ISO3 via pycountry
     try:
@@ -118,12 +100,27 @@ def _align_ipa_to_orth(
     idx = 0
     n = len(word)
 
+    import unicodedata
+
+    def _strip_tones(s: str) -> str:
+        # remove diacritics (tone marks) from pinyin before Epitran
+        return "".join(
+            c
+            for c in unicodedata.normalize("NFD", s)
+            if unicodedata.category(c) != "Mn"
+        )
+
     for ipa_chunk in ipa_syllables:
         matched = False
         # Try all possible substrings starting at idx, increasing end.
         for end in range(idx + 1, n + 1):
             candidate = word[idx:end]
-            if epi.transliterate(candidate) == ipa_chunk:
+            # strip tone marks before asking Epitran
+            base = _strip_tones(candidate)
+            translit = epi.transliterate(base)
+            print(translit, ipa_chunk)
+            # accept either a prefix‐match or a suffix‐match
+            if translit.startswith(ipa_chunk) or ipa_chunk.endswith(translit):
                 orth_sylls.append(candidate)
                 idx = end
                 matched = True
@@ -135,7 +132,7 @@ def _align_ipa_to_orth(
     return orth_sylls
 
 
-def _epitran_split(word: str, lang: str) -> list[str]:
+def _epitran_split(word: str, lang: str) -> list[str] | None:
     """
     Fallback syllabifier via Epitran → IPA → LingPy → brute-force align back to orthography.
 
@@ -163,7 +160,7 @@ def _epitran_split(word: str, lang: str) -> list[str]:
             f"Mnemorai syllabification is only supported for languages with a Latin script. "
             f"'{epi_tag}' does not end with '-Latn'."
         )
-        return []
+        return
 
     # 2) load or retrieve from cache
     try:
@@ -212,6 +209,10 @@ def _pyphen_split(word: str, lang: str) -> list[str] | None:
     """Try Pyphen hyphenation; return None if language unsupported."""
     code = _PYPHEN_LANGS.get(lang.split("-")[0])
     if not code:
+        logger.debug(
+            f"Pyphen does not support the language code '{lang}'. "
+            "Falling back to Epitran syllabification."
+        )
         return None
     return pyphen.Pyphen(lang=code).inserted(word).split("-")
 
@@ -245,9 +246,9 @@ def pick_best(sol1: list[str], sol2: list[str]) -> list[str]:
 
     If they're equal length, return sol1 by default.
     """
-    if sol1 is None or len(sol1) == 0:
+    if sol1 is None:
         return sol2
-    if sol2 is None or len(sol2) == 0:
+    if sol2 is None:
         return sol1
 
     if sol1 is None and sol2 is None:
@@ -258,16 +259,8 @@ def pick_best(sol1: list[str], sol2: list[str]) -> list[str]:
 
 
 if __name__ == "__main__":
-    # Note: Need to use the transliterated word as input for pyphen
     print(syllables("semangat", "id"))  # → ['se', 'ma', 'ngat]
     print(syllables("bonjour", "fr"))  # → ['bon', 'jour']
     print(syllables("fiesta", "es"))  # → ['fies', 'ta']
     print(syllables("schönheit", "de"))  # → ['schön', 'heit']
     print(syllables("hondsdolheid", "nl"))  # → ['honds', 'dol', 'heid']
-
-    # For Chinese we use pinyin
-    print(syllables("Zǎoshang", "zh"))
-    print(syllables("Zhōngwén", "zh"))
-
-    # Non latin scripts are not supported
-    print(_epitran_split("こんにちは", "jpn-Hrgn"))
