@@ -143,13 +143,20 @@ async def translate_word(word, src_lang_code, target_lang_code: str = "en") -> t
     """
     logger.debug(f"Translating {word} from {src_lang_code} to {target_lang_code}...")
 
-    src = map_language_code(src_lang_code)
-    logger.debug(f"Mapped translation source language code: {src}")
+    if len(src_lang_code) > 2:
+        src = map_language_code(src_lang_code)
+        logger.debug(
+            f"Mapped translation source language code: {src_lang_code} -> {src}"
+        )
+    else:
+        src = src_lang_code
 
     # Map target language codes.
     if len(target_lang_code) > 2:
         target = map_language_code(target_lang_code)
-        logger.debug(f"Mapped translation target language code: {target}")
+        logger.debug(
+            f"Mapped translation target language code: {target_lang_code} -> {target}"
+        )
     else:
         target = target_lang_code
 

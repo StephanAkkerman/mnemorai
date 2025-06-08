@@ -30,6 +30,7 @@ LLM:
   LORA: "StephanAkkerman/Phi-3-mini-4k-instruct-QLoRA-4bit-Mnemonic"
   DELETE_AFTER_USE: False
   OFFLOAD: True
+  MNEMONIC_CANDIDATES: 20
   PARAMS:
     max_new_tokens: 512
     #temperature: 0.5

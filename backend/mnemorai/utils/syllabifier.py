@@ -150,10 +150,12 @@ def _epitran_split(word: str, lang: str) -> list[str] | None:
         logger.warning(
             f"Unsupported language code '{lang}' for Epitran syllabification."
         )
+        return
 
     # Check if this tag is supported by Epitran
     if epi_tag not in EPITRAN_LANGCODES:
         logger.warning(f"Epitran does not support the language code '{epi_tag}'. ")
+        return
 
     if not epi_tag.endswith("-Latn"):
         logger.warning(

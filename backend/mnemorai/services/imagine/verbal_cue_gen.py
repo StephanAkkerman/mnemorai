@@ -12,24 +12,42 @@ from mnemorai.constants.config import config
 from mnemorai.logger import logger
 from mnemorai.services.pre.grapheme2phoneme import Grapheme2Phoneme
 from mnemorai.services.pre.translator import translate_word
+from mnemorai.utils.lang_codes import map_language_code
 from mnemorai.utils.load_models import select_model
 from mnemorai.utils.model_mem import manage_memory
-from mnemorai.utils.ngram_probs import ngram_grid
-from mnemorai.utils.syllabifier import syllabify
+from mnemorai.utils.ngram_probs import ngrams_to_df
+from mnemorai.utils.syllabifier import syllables
 
 
-def _mnemonic_prompt_template(word: str):
+def _mnemonic_prompt_template(
+    word: str, n: int = config.get("LLM").get("MNEMONIC_CANDIDATES")
+):
     return f"""
 Word: {word}
-Task: Brainstorm 20 ENGLISH words that sounds similar to "{word}"
-Guidelines:
-- Loose phonetic similarity is welcome.
-- You may swap or drop consonants/vowels (for instance 'd'->'th', 'g'->'k', etc.).  
-- Try to not use many extra letters than the given word  
+Task: Brainstorm {n} ENGLISH words that sounds similar to "{word}"
+Guidelines:  
+- Loose phonetic similarity is welcome.  
+- You may swap or drop consonants/vowels (e.g., 'd'→'th', 'g'→'k', etc.).  
+- Voicing changes and soft consonant substitutions (e.g., 'd' ↔ 'th', 'b' ↔ 'v') are encouraged.  
+- Function words, articles, and short high-frequency words are allowed.  
+- Only include **standard, commonly used English words** (avoid slang, interjections, contractions, or non-words).  
+- Try not to use many extra letters than the given word.  
 - No translations, no definitions—just comma-separated list, lower-case.  
--   Try not to add any more letters  
--   Start with the most suitable candidates first  
+- Start with the most suitable candidates first.  
+- Only include words with similar sounds, not synonyms or related concepts.  
+
 Return: one line of comma-separated candidates, no explanation.
+"""
+
+
+def _mnemonic_selector_template(
+    word: str, meaning: str, candidates: list[str], n: int = 25
+):
+    return f"""
+What is a fitting mnemonic for the word "{word}" (meaning {meaning}). 
+Choose from the following list and only respond with the result.
+
+The candidates are: {', '.join(candidates[:n])}.
 """
 
 
@@ -63,7 +81,7 @@ class VerbalCue:
             },
             {
                 "role": "assistant",
-                "content": """flashy, flash, flask, flasher, fleshy, flusher, flush, flash he, flesh he, flossier""",
+                "content": """flashy, flash, flask, flasher, fleshy, flusher, flush, flash he, flesh he, fleshy""",
             },
         ]
 
@@ -147,6 +165,8 @@ For each prompt:
             "content": _mnemonic_prompt_template(word=word),
         }
 
+        logger.debug(f"Generating mnemonics for word: {word}")
+        # TODO: apply chat template
         output = self.pipe(
             self.mnemonic_messages + [final_message], **self.generation_args
         )
@@ -158,22 +178,32 @@ For each prompt:
 
         return candidates
 
-    def get_best_candidate(self, word: str, ipa_word: str):
+    def get_best_candidate(self, word: str, language_code: str):
         # Split word into syllables
-        syllables = syllabify(word)
-        logger.debug(f"Syllables for '{word}': {syllables}")
-
-        syllable_candidates = []
-
-        for syllable in syllables:
-            syllable_candidates.append(self.get_candidates(syllable))
+        word_syllables = syllables(word, language_code)
+        logger.debug(f"Syllables for '{word}': {word_syllables}")
 
         # Also do this for the whole word
         full_word_candidates = self.get_candidates(word)
 
-        # Get the n-gram probabilities for the candidates
-        syllable_probs = ngram_grid(syllable_candidates)
-        full_word_probs = ngram_grid([full_word_candidates])
+        syllable_candidates = []
+
+        if word_syllables is not None:
+            for syllable in word_syllables:
+                syllable_candidates.append(self.get_candidates(syllable))
+
+            # Get the n-gram probabilities for the candidates
+            probs = ngrams_to_df([full_word_candidates], syllable_candidates)
+
+        else:
+            probs = ngrams_to_df([full_word_candidates])
+
+        logger.debug(f"Probabilities DataFrame:\n{probs}")
+
+        # Get the candidates
+        candidates = probs["ngram"].tolist()
+
+        # Ask the LLM for the best candidate
 
     @manage_memory(
         targets=["model"], delete_attrs=["model", "pipe", "tokenizer"], move_kwargs={}
@@ -207,12 +237,16 @@ For each prompt:
         # Convert the input word to IPA representation
         ipa = self.g2p_model.word2ipa(word=word, language_code=language_code)
 
+        # Get the 2-letter language code
+        language_code = map_language_code(language_code)
+        logger.debug(f"Mapped language code: {language_code}")
+
         # Translate and transliterate the word
         translated_word, transliterated_word = await translate_word(word, language_code)
 
         # If a keyword or key sentence is provided do not generate mnemonics
         if not (keyword or key_sentence):
-            best = self.get_best_candidate()  # TODO: fix
+            best = self.get_best_candidate(word, language_code)
 
         if key_sentence:
             return best, translated_word, transliterated_word, ipa, key_sentence

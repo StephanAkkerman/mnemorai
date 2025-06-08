@@ -127,7 +127,10 @@ if __name__ == "__main__":
         "ging": unformatted_list2.split(", "),
     }
 
-    print(ngrams_to_df([input_dict["da"]], [input_dict["da"], input_dict["ging"]]))
+    probs_df = ngrams_to_df([input_dict["da"]], [input_dict["da"], input_dict["ging"]])
+
+    # Print top 10 ngram
+    print(probs_df.head(25)["ngram"].tolist())
 
     # Unigrams
     # for (w1), p in ngram_grid([da]):
