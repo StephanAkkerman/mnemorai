@@ -85,6 +85,52 @@ class VerbalCue:
             },
         ]
 
+        self.mnemonic_selector_messages = [
+            {
+                "role": "system",
+                "content": """You are mnemonic candidate selector. You select the best mnemonic for a given word from a list.""",
+            },
+            {
+                "role": "user",
+                "content": _mnemonic_selector_template(
+                    "daging",
+                    "meat",
+                    [
+                        "the",
+                        "the king",
+                        "the thing",
+                        "there",
+                        "the town",
+                        "the tongue",
+                        "the ten",
+                        "though",
+                        "due",
+                        "data",
+                        "the wing",
+                        "the twin",
+                        "the then",
+                        "door",
+                        "door",
+                        "toe then",
+                        "tea then",
+                        "donor then",
+                        "dare then",
+                        "tire then",
+                        "tear then",
+                        "dart then",
+                        "dough then",
+                        "doe then",
+                        "tie then",
+                    ],
+                    n=25,
+                ),
+            },
+            {
+                "role": "assistant",
+                "content": """flashy, flash, flask, flasher, fleshy, flusher, flush, flash he, flesh he, fleshy""",
+            },
+        ]
+
         self.verbal_cue_messages = [
             {
                 "role": "system",
