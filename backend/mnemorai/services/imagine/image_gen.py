@@ -3,14 +3,16 @@ from pathlib import Path
 
 import torch
 from diffusers import (
+    AutoencoderKL,
     AutoPipelineForText2Image,
-    SanaPipeline,
-    SanaTransformer2DModel,
+    FlowMatchEulerDiscreteScheduler,
+    FluxPipeline,
 )
-from diffusers import (
-    BitsAndBytesConfig as DiffusersBitsAndBytesConfig,
-)
-from transformers import AutoModel
+from huggingface_hub import hf_hub_download
+from nunchaku import NunchakuT5EncoderModel
+from nunchaku.models.transformers.transformer_flux import NunchakuFluxTransformer2dModel
+from nunchaku.utils import get_precision
+from transformers import AutoModel, CLIPTextModel, CLIPTokenizer, T5TokenizerFast
 from transformers import BitsAndBytesConfig as BitsAndBytesConfig
 
 from mnemorai.constants.config import config
@@ -37,12 +39,23 @@ class ImageGen:
         os.makedirs(self.output_dir, exist_ok=True)
         self.image_gen_params = self.config.get("PARAMS", {})
 
+        # if seed is provided, set it
+        if "seed" in self.image_gen_params:
+            if not isinstance(self.image_gen_params["seed"], int):
+                logger.warning("Seed must be an integer. Using no seed.")
+            else:
+                self.image_gen_params["generator"] = torch.Generator(
+                    device="cuda"
+                ).manual_seed(self.image_gen_params["seed"])
+            # remove seed from params to avoid passing it to the pipeline
+            del self.image_gen_params["seed"]
+
         # Initialize pipe to None; will be loaded on first use
         self.pipe = None
 
     def _get_pipe_func(self):
-        if "sana" in self.model_name.lower():
-            return SanaPipeline
+        if "flux" in self.model_name.lower():
+            return FluxPipeline
         else:
             return AutoPipelineForText2Image
 
@@ -50,56 +63,90 @@ class ImageGen:
         """Initialize the pipeline."""
         pipe_func = self._get_pipe_func()
         logger.debug(f"Initializing pipeline for model: {self.model}")
+        dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
-        quantization = self.config.get("QUANTIZATION")
+        if "flux" in self.model_name.lower():
+            bfl_repo = "black-forest-labs/FLUX.1-dev"
+            device = "cuda"
 
-        if quantization != "4bit" and quantization != "8bit":
-            logger.debug("Using default model loading without quantization")
-            self.pipe = pipe_func.from_pretrained(
-                self.model,
-                torch_dtype=torch.float16,
-                variant="fp16",
+            scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(
+                bfl_repo,
+                subfolder="scheduler",
+                torch_dtype=dtype,
                 cache_dir="models",
             )
-        else:
-            if "sana" in self.model_name.lower():
-                if quantization == "8bit":
-                    quant_config = BitsAndBytesConfig(load_in_8bit=True)
-                    logger.debug("Using 8-bit quantization for Sana model")
-                elif quantization == "4bit":
-                    quant_config = BitsAndBytesConfig(load_in_4bit=True)
-                    logger.debug("Using 4-bit quantization for Sana model")
-                else:
-                    raise ValueError(
-                        f"Invalid quantization type. Use '8bit' or '4bit'. Your quantization is: {quantization}"
+            text_encoder = CLIPTextModel.from_pretrained(
+                bfl_repo,
+                subfolder="text_encoder",
+                torch_dtype=dtype,
+                cache_dir="models",
+            )
+            # T5 encoder in int4
+            text_encoder_2 = NunchakuT5EncoderModel.from_pretrained(
+                "mit-han-lab/nunchaku-t5/awq-int4-flux.1-t5xxl.safetensors",
+                cache_dir="models",
+            )
+            tokenizer = CLIPTokenizer.from_pretrained(
+                bfl_repo,
+                subfolder="tokenizer",
+                torch_dtype=dtype,
+                clean_up_tokenization_spaces=True,
+                cache_dir="models",
+            )
+            tokenizer_2 = T5TokenizerFast.from_pretrained(
+                bfl_repo,
+                subfolder="tokenizer_2",
+                torch_dtype=dtype,
+                clean_up_tokenization_spaces=True,
+                cache_dir="models",
+            )
+            vae = AutoencoderKL.from_pretrained(
+                bfl_repo,
+                subfolder="vae",
+                torch_dtype=dtype,
+                cache_dir="models",
+            )
+            precision = (
+                get_precision()
+            )  # auto-detect your precision is 'int4' or 'fp4' based on your GPU
+            transformer = NunchakuFluxTransformer2dModel.from_pretrained(
+                f"mit-han-lab/nunchaku-flux.1-dev/svdq-{precision}_r32-flux.1-dev.safetensors",
+                offload=self.config.get("OFFLOAD_T5", True),
+            )
+            # Set attention implementation to fp16
+            transformer.set_attention_impl("nunchaku-fp16")
+
+            params = {
+                "scheduler": scheduler,
+                "vae": vae,
+                "tokenizer": tokenizer,
+                "tokenizer_2": tokenizer_2,
+                "text_encoder": text_encoder,
+                "text_encoder_2": text_encoder_2,
+                "transformer": transformer,
+            }
+            self.pipe = FluxPipeline(**params).to(device, dtype=dtype)
+
+            lora_config = self.config.get("FLUX_LORA", {})
+            if lora_config.get("USE_LORA", False):
+                logger.info("Loading LoRA weights for FLUX model.")
+                self.pipe.load_lora_weights(
+                    hf_hub_download(
+                        lora_config.get("LORA_REPO"),
+                        lora_config.get("LORA_FILE"),
                     )
-
-                text_encoder_8bit = AutoModel.from_pretrained(
-                    self.model,
-                    subfolder="text_encoder",
-                    quantization_config=quant_config,
-                    torch_dtype=torch.float16,
-                    cache_dir="models",
                 )
+                self.pipe.fuse_lora(lora_scale=lora_config.get("LORA_SCALE", 1.0))
 
-                quant_config = DiffusersBitsAndBytesConfig(load_in_8bit=True)
-                transformer_8bit = SanaTransformer2DModel.from_pretrained(
-                    self.model,
-                    subfolder="transformer",
-                    quantization_config=quant_config,
-                    torch_dtype=torch.float16,
-                    cache_dir="models",
-                )
-
-                self.pipe = SanaPipeline.from_pretrained(
-                    self.model,
-                    text_encoder=text_encoder_8bit,
-                    transformer=transformer_8bit,
-                    torch_dtype=torch.float16,
-                    device_map="balanced",
-                )
-            else:
-                raise NotImplementedError("Quantization not supported for this model.")
+            # offload, does not decrease performance
+            self.pipe.enable_sequential_cpu_offload(device=device)
+        else:
+            self.pipe = pipe_func.from_pretrained(
+                self.model,
+                torch_dtype=dtype,
+                variant="fp16" if dtype == torch.float16 else None,
+                cache_dir="models",
+            )
 
     @manage_memory(
         targets=["pipe"],
@@ -108,7 +155,7 @@ class ImageGen:
     )
     def generate_img(
         self,
-        prompt: str = "Imagine a flashy bottle that stands out from the other bottles.",
+        prompt: str = "A flashy bottle that stands out from the other bottles.",
         word1: str = "flashy",
         word2: str = "bottle",
     ):
@@ -125,9 +172,6 @@ class ImageGen:
             The second word, by default "bottle"
         """
         file_path = self.output_dir / f"{word1}_{word2}_{self.model_name}.png"
-
-        # Clean prompt by dropping "imagine " prefix
-        prompt = prompt.lower().lstrip("imagine").strip()
 
         logger.info(f"Generating image for prompt: {prompt}")
         image = self.pipe(prompt=prompt, **self.image_gen_params).images[0]

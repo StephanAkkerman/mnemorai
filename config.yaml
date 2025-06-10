@@ -41,17 +41,20 @@ IMAGE_GEN:
     NAME: stabilityai/stable-diffusion-2
     VRAM: 3 # 3GB vram
   MEDIUM_MODEL: 
-    NAME: stabilityai/sdxl-turbo 
-    VRAM: 6 # 6GB vram
-  LARGE_MODEL: 
-    NAME: Efficient-Large-Model/Sana_600M_512px_diffusers
-    VRAM: 9 # 9GB vram, less with quantization
+    NAME: black-forest-labs/FLUX.1-dev
+    VRAM: 5 # 5GB vram
   OUTPUT_DIR: "imagine/generated-img"
-  # Options are: None, 4bit, 8bit
-  QUANTIZATION: None # only supported for Sana at the moment
+  FLUX_LORA:
+    USE_LORA: False
+    LORA_REPO: "ByteDance/Hyper-SD"
+    LORA_FILE: "Hyper-FLUX.1-dev-8steps-lora.safetensors"
+    LORA_SCALE: 0.125
+  OFFLOAD_T5: True # If you have more VRAM, you can set this to False to speed up the process
   DELETE_AFTER_USE: False
-  OFFLOAD: True # This must be False if quantization != None
+  OFFLOAD: True
   PARAMS:
-    num_inference_steps: 40
-    height: 512
-    width: 512
+    num_inference_steps: 25
+    guidance_scale: 3.5
+    height: 1024
+    width: 1024
+    seed: 42

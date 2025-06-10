@@ -56,7 +56,7 @@ def iso1_to_epi_tag(
     key = iso_code.strip().lower()
 
     # 2) Otherwise, try to split out any region/script subtag (e.g. "sr-Latn" or "en-US")
-    base, _ = key.split("-")
+    base = key.split("-")[0]
 
     # 3) Lookup ISO3 via pycountry
     try:
@@ -118,7 +118,6 @@ def _align_ipa_to_orth(
             # strip tone marks before asking Epitran
             base = _strip_tones(candidate)
             translit = epi.transliterate(base)
-            print(translit, ipa_chunk)
             # accept either a prefix‐match or a suffix‐match
             if translit.startswith(ipa_chunk) or ipa_chunk.endswith(translit):
                 orth_sylls.append(candidate)
@@ -261,8 +260,10 @@ def pick_best(sol1: list[str], sol2: list[str]) -> list[str]:
 
 
 if __name__ == "__main__":
-    print(syllables("semangat", "id"))  # → ['se', 'ma', 'ngat]
-    print(syllables("bonjour", "fr"))  # → ['bon', 'jour']
-    print(syllables("fiesta", "es"))  # → ['fies', 'ta']
-    print(syllables("schönheit", "de"))  # → ['schön', 'heit']
-    print(syllables("hondsdolheid", "nl"))  # → ['honds', 'dol', 'heid']
+    # print(syllables("semangat", "id"))  # → ['se', 'ma', 'ngat]
+    # print(syllables("bonjour", "fr"))  # → ['bon', 'jour']
+    # print(syllables("fiesta", "es"))  # → ['fies', 'ta']
+    # print(syllables("schönheit", "de"))  # → ['schön', 'heit']
+    # print(syllables("hondsdolheid", "nl"))  # → ['honds', 'dol', 'heid']
+
+    print(_epitran_split("semangat", "id"))  # → ['se', 'ma', 'ngat']

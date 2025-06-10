@@ -53,8 +53,15 @@ The candidates are: {', '.join(candidates[:n])}.
 
 def _verbal_cue_prompt_template(word1: str, word2: str):
     return f"""
-I want a mnemonic to combine "{word1}" and "{word2}" think of something that I can visualize. 
-The output will be used as a prompt for image generation, so it should be a vivid and memorable sentence.
+Create a vivid and imaginative scene that clearly and visually includes both "{word1}" and "{word2}" in a single image.
+
+The prompt will be used for image generation, so describe:
+- A coherent scene where both elements are present and interact or coexist
+- Setting, characters, lighting, and visual style
+- Avoid symbolic or metaphorical substitutions
+
+Make sure the words "{word1}" and "{word2}" are reflected literally in the visual content.
+Output only the final prompt, nothing else.
 """
 
 
@@ -73,7 +80,7 @@ class VerbalCue:
         self.mnemonic_messages = [
             {
                 "role": "system",
-                "content": """You are a phonetic pun generator.""",
+                "content": "You are a phonetic pun generator.",
             },
             {
                 "role": "user",
@@ -81,53 +88,29 @@ class VerbalCue:
             },
             {
                 "role": "assistant",
-                "content": """flashy, flash, flask, flasher, fleshy, flusher, flush, flash he, flesh he, fleshy""",
+                "content": "flashy, flash, flask, flasher, fleshy, flusher, flush, flash he, flesh he, fleshy",
             },
         ]
 
         self.mnemonic_selector_messages = [
             {
                 "role": "system",
-                "content": """You are mnemonic candidate selector. You select the best mnemonic for a given word from a list.""",
+                "content": "You are mnemonic candidate selector. You select the best mnemonic for a given word from a list.",
             },
             {
                 "role": "user",
                 "content": _mnemonic_selector_template(
-                    "daging",
-                    "meat",
+                    "flasche",
+                    "flashy",
                     [
-                        "the",
-                        "the king",
-                        "the thing",
-                        "there",
-                        "the town",
-                        "the tongue",
-                        "the ten",
-                        "though",
-                        "due",
-                        "data",
-                        "the wing",
-                        "the twin",
-                        "the then",
-                        "door",
-                        "door",
-                        "toe then",
-                        "tea then",
-                        "donor then",
-                        "dare then",
-                        "tire then",
-                        "tear then",
-                        "dart then",
-                        "dough then",
-                        "doe then",
-                        "tie then",
+                        "flashy, flash, flask, flasher, fleshy, flusher, flush, flash he, flesh he, fleshy"
                     ],
-                    n=25,
+                    n=10,
                 ),
             },
             {
                 "role": "assistant",
-                "content": """flashy, flash, flask, flasher, fleshy, flusher, flush, flash he, flesh he, fleshy""",
+                "content": "flashy",
             },
         ]
 
@@ -135,13 +118,14 @@ class VerbalCue:
             {
                 "role": "system",
                 "content": """
-You are an imaginative and detail-oriented visual scene generator. Your job is to take two given concepts and craft a vivid, coherent prompt suitable for AI image generation.
-For each prompt:
-    - Blend both concepts into a single, creative scene
-    - Use rich, visual language that evokes strong mental imagery
-    - Describe characters, setting, lighting, mood, and key elements
-    - Focus on being clear, cinematic, and image-friendly — no backstory, no abstract explanations
-    - If appropriate, inject a sense of whimsy, surrealism, or narrative tension
+You are a prompt generator for AI image models. Your job is to take two input words or concepts and create a vivid, image-friendly scene description that visually includes and connects both words directly.
+Instructions:
+- Combine the two given words into a single coherent and creative scene.
+- Do not replace the concepts with symbolic or metaphorical equivalents.
+- Make sure both original concepts appear clearly and literally in the scene — their presence must be obvious and describable.
+- Use detailed, cinematic, imaginative language to describe the setting, atmosphere, lighting, characters, and actions.
+- Avoid abstract or poetic interpretations unless explicitly requested.
+- Keep the format simple: just the final prompt, nothing else.
 """,
             },
             {
@@ -228,15 +212,17 @@ For each prompt:
         output = self.pipe(
             self.mnemonic_messages + [final_message], **self.generation_args
         )
-        response = output[0]["generated_text"]
-        logger.debug(f"Generated mnemonics: {response[-1]['content']}")
+        response = output[0]["generated_text"][-1]["content"]
+        logger.debug(f"Generated mnemonics: {response}")
 
         # parse the string into Python objects and find best match
-        candidates = response[-1]["content"].strip().split(",")
+        candidates = response.strip().split(", ")
 
         return candidates
 
-    def get_best_candidate(self, word: str, language_code: str) -> str:
+    def get_best_candidate(
+        self, word: str, language_code: str, translation: str
+    ) -> str:
         """Get the best candidate for a mnemonic based on the input word and language code.
 
         Parameters
@@ -274,9 +260,26 @@ For each prompt:
 
         # Get the candidates
         candidates = probs["ngram"].tolist()
+        logger.debug(f"Candidates for '{word}': {candidates[:50]}")
+
+        # Idea: use levenshtein distance as pre-filtering step, to reduce the number of candidates
 
         # Ask the LLM for the best candidate
-        return candidates
+        final_message = {
+            "role": "user",
+            "content": _mnemonic_selector_template(
+                word=word, meaning=translation, candidates=candidates, n=50
+            ),
+        }
+        output = self.pipe(
+            self.mnemonic_selector_messages + [final_message],
+            **self.generation_args,
+        )
+        response = output[0]["generated_text"][-1]["content"]
+        best_candidate = response.strip()
+        logger.debug(f"Best candidate for '{word}': {best_candidate}")
+
+        return best_candidate
 
     @manage_memory(
         targets=["model"], delete_attrs=["model", "pipe", "tokenizer"], move_kwargs={}
@@ -319,7 +322,7 @@ For each prompt:
 
         # If a keyword or key sentence is provided do not generate mnemonics
         if not (keyword or key_sentence):
-            best = self.get_best_candidate(word, language_code)
+            best = self.get_best_candidate(word, language_code, translated_word)
 
         if key_sentence:
             return best, translated_word, transliterated_word, ipa, key_sentence
@@ -350,14 +353,13 @@ For each prompt:
         """
         final_message = {
             "role": "user",
-            "content": f"Generate a mnemonic sentence for the given input. Start the sentence with 'imagine' and keep it simple.\nInput: English Word: {word1} | Mnemonic Word: {word2}",
+            "content": _verbal_cue_prompt_template(word1=word1, word2=word2),
         }
         # For some reason using tokenizer.apply_chat_template() here causes weird output
         output = self.pipe(
             self.verbal_cue_messages + [final_message], **self.generation_args
         )
-        response = output[0]["generated_text"]
-        verbal_cue = response[-1]["content"]
+        verbal_cue = output[0]["generated_text"][-1]["content"]
         logger.debug(f"Generated verbal cue: {verbal_cue}")
 
         return verbal_cue
@@ -365,5 +367,9 @@ For each prompt:
 
 if __name__ == "__main__":
     vc = VerbalCue()
+
+    # Some examples
     print(asyncio.run(vc.generate_mnemonic(word="daging", language_code="ind")))
-    # print(vc.generate_cue("bottle", "flashy"))
+    print(asyncio.run(vc.generate_mnemonic(word="jembatan", language_code="ind")))
+    print(asyncio.run(vc.generate_mnemonic(word="tikus", language_code="ind")))
+    print(asyncio.run(vc.generate_mnemonic(word="jarum", language_code="ind")))
