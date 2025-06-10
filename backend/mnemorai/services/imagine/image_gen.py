@@ -12,8 +12,8 @@ from huggingface_hub import hf_hub_download
 from nunchaku import NunchakuT5EncoderModel
 from nunchaku.models.transformers.transformer_flux import NunchakuFluxTransformer2dModel
 from nunchaku.utils import get_precision
-from transformers import AutoModel, CLIPTextModel, CLIPTokenizer, T5TokenizerFast
 from transformers import BitsAndBytesConfig as BitsAndBytesConfig
+from transformers import CLIPTextModel, CLIPTokenizer, T5TokenizerFast
 
 from mnemorai.constants.config import config
 from mnemorai.logger import logger
@@ -130,13 +130,14 @@ class ImageGen:
             lora_config = self.config.get("FLUX_LORA", {})
             if lora_config.get("USE_LORA", False):
                 logger.info("Loading LoRA weights for FLUX model.")
-                self.pipe.load_lora_weights(
+                transformer.update_lora_params(
                     hf_hub_download(
                         lora_config.get("LORA_REPO"),
                         lora_config.get("LORA_FILE"),
                     )
                 )
-                self.pipe.fuse_lora(lora_scale=lora_config.get("LORA_SCALE", 1.0))
+
+                transformer.set_lora_strength(lora_config.get("LORA_SCALE", 1.0))
 
             # offload, does not decrease performance
             if self.config.get("SEQUENTIAL_OFFLOAD", True):
