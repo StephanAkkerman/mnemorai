@@ -125,7 +125,7 @@ class ImageGen:
                 "text_encoder_2": text_encoder_2,
                 "transformer": transformer,
             }
-            self.pipe = FluxPipeline(**params).to(device, dtype=dtype)
+            self.pipe = FluxPipeline(**params)  # .to(device, dtype=dtype)
 
             lora_config = self.config.get("FLUX_LORA", {})
             if lora_config.get("USE_LORA", False):
@@ -139,7 +139,9 @@ class ImageGen:
                 self.pipe.fuse_lora(lora_scale=lora_config.get("LORA_SCALE", 1.0))
 
             # offload, does not decrease performance
-            self.pipe.enable_sequential_cpu_offload(device=device)
+            if self.config.get("SEQUENTIAL_OFFLOAD", True):
+                logger.info("Enabling sequential CPU offload for FLUX model.")
+                self.pipe.enable_sequential_cpu_offload(device=device)
         else:
             self.pipe = pipe_func.from_pretrained(
                 self.model,
