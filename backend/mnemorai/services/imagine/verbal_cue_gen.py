@@ -53,15 +53,13 @@ The candidates are: {', '.join(candidates[:n])}.
 
 def _verbal_cue_prompt_template(word1: str, word2: str):
     return f"""
-Create a vivid and imaginative scene that clearly and visually includes both "{word1}" and "{word2}" in a single image.
+Create a short, vivid prompt for image generation that clearly and literally includes both "{word1}" and "{word2}" in a single visual scene.
 
-The prompt will be used for image generation, so describe:
-- A coherent scene where both elements are present and interact or coexist
-- Setting, characters, lighting, and visual style
-- Avoid symbolic or metaphorical substitutions
-
-Make sure the words "{word1}" and "{word2}" are reflected literally in the visual content.
-Output only the final prompt, nothing else.
+- Be imaginative, playful, or surreal — but always make sure both terms are visually present and literally depicted.
+- Do not replace either word with a metaphor or symbol.
+- Aim for a visually striking or unusual combination that would make the scene memorable.
+- Avoid unrelated elements or excessive realism that makes the scene dull.
+- The description should be 2-3 sentences, and output only the prompt.
 """
 
 
@@ -165,6 +163,8 @@ Instructions:
         # only include quantization_config if we actually have one
         if bnb_config is not None:
             kwargs["quantization_config"] = bnb_config
+
+        logger.debug(f"Loading LLM model with kwargs: {kwargs}")
 
         self.model = AutoModelForCausalLM.from_pretrained(self.model_name, **kwargs)
 
@@ -368,8 +368,7 @@ Instructions:
 if __name__ == "__main__":
     vc = VerbalCue()
 
-    # Some examples
     print(asyncio.run(vc.generate_mnemonic(word="daging", language_code="ind")))
-    print(asyncio.run(vc.generate_mnemonic(word="jembatan", language_code="ind")))
-    print(asyncio.run(vc.generate_mnemonic(word="tikus", language_code="ind")))
-    print(asyncio.run(vc.generate_mnemonic(word="jarum", language_code="ind")))
+    # print(asyncio.run(vc.generate_mnemonic(word="jembatan", language_code="ind")))
+    # print(asyncio.run(vc.generate_mnemonic(word="tikus", language_code="ind")))
+    # print(asyncio.run(vc.generate_mnemonic(word="jarum", language_code="ind")))
