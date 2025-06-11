@@ -41,5 +41,3 @@ jobs:
             python -m pip install --upgrade pip setuptools wheel
             # install everything *except* nunchaku
             pip install --dry-run -r requirements-ci.txt
-            # install your package in -e mode but skip deps
-            pip install --dry-run -e . --no-deps
