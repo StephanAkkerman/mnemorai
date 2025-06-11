@@ -29,13 +29,10 @@ jobs:
             cache: 'pip'                       # enable built-in cache
             cache-dependency-path: backend/requirements.txt
     
-      - name: Resolve direct-URL deps
+      - name: Resolve everything (dry-run)
         run: |
             cd backend
             python -m pip install --upgrade pip setuptools wheel
-            python -m pip install --dry-run -r requirements.txt
-    
-      - name: Resolve editable package (no deps)
-        run: |
-            cd backend
-            python -m pip install --dry-run -e . --no-deps
+            # --no-build-isolation makes pip run setup.py in the current env,
+            # using your upgraded setuptools
+            python -m pip install --dry-run -e . --no-deps --no-build-isolation -r requirements.txt
