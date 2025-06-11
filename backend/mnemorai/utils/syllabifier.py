@@ -158,7 +158,7 @@ def _epitran_split(word: str, lang: str) -> list[str] | None:
 
     if not epi_tag.endswith("-Latn"):
         logger.warning(
-            f"Mnemorai syllabification is only supported for languages with a Latin script. "
+            "Mnemorai syllabification is only supported for languages with a Latin script. "
             f"'{epi_tag}' does not end with '-Latn'."
         )
         return
