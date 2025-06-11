@@ -29,12 +29,13 @@ jobs:
             cache: 'pip'                       # enable built-in cache
             cache-dependency-path: backend/requirements.txt
     
-      - name: Resolve dependencies only
+      - name: Resolve direct-URL deps
         run: |
             cd backend
-            python -m pip install --upgrade pip
-            pip install -U setuptools wheel
-            # Resolve requirements and editable package - no wheels pulled, no files installed
-            python -m pip install --dry-run -e . -r requirements.txt
-          
-
+            python -m pip install --upgrade pip setuptools wheel
+            python -m pip install --dry-run -r requirements.txt
+    
+      - name: Resolve editable package (no deps)
+        run: |
+            cd backend
+            python -m pip install --dry-run -e . --no-deps
