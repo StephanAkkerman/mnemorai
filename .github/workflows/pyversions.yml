@@ -28,12 +28,16 @@ jobs:
             python-version: ${{ matrix.python-version }}
             cache: 'pip'                       # enable built-in cache
             cache-dependency-path: backend/requirements.txt
-    
-      - name: Resolve dependencies only
+
+      - name: Prepare CI-only requirements
         run: |
             cd backend
-            python -m pip install --upgrade pip
-            # Resolve requirements and editable package - no wheels pulled, no files installed
-            python -m pip install --dry-run -e . -r requirements.txt
-          
+            # remove any "nunchaku @ …" lines
+            grep -v '^nunchaku @ ' requirements.txt > requirements-ci.txt
 
+      - name: Resolve everything (dry-run)
+        run: |
+            cd backend
+            python -m pip install --upgrade pip setuptools wheel
+            # install everything *except* nunchaku
+            pip install --dry-run -r requirements-ci.txt

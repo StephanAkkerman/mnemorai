@@ -85,4 +85,4 @@ class MnemonicPipeline:
 
 if __name__ == "__main__":
     pipeline = MnemonicPipeline()
-    print(asyncio.run(pipeline.generate_mnemonic_img("ratatouille", "eng-us")))
+    print(asyncio.run(pipeline.generate_mnemonic_img("tikus", "ind")))
