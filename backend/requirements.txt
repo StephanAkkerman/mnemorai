@@ -1,5 +1,5 @@
 # Torch dependencies
-torch==2.7.0
+torch==2.7.1
 # Huggingface dependencies
 transformers[sentencepiece]==4.51.3
 diffusers==0.33.1
