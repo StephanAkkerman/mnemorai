@@ -9,7 +9,7 @@ huggingface-hub==0.32.4
 bitsandbytes==0.46.0
 peft==0.15.2
 # Common dependencies
-numpy==2.2.6
+numpy==2.3.0
 pandas==2.3.0
 # TTS
 gtts==2.5.4
