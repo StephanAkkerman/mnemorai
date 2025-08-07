@@ -66,66 +66,20 @@ class ImageGen:
         dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
         if "flux" in self.model_name.lower():
-            bfl_repo = "black-forest-labs/FLUX.1-dev"
             device = "cuda"
 
-            scheduler = FlowMatchEulerDiscreteScheduler.from_pretrained(
-                bfl_repo,
-                subfolder="scheduler",
-                torch_dtype=dtype,
-                cache_dir="models",
-            )
-            text_encoder = CLIPTextModel.from_pretrained(
-                bfl_repo,
-                subfolder="text_encoder",
-                torch_dtype=dtype,
-                cache_dir="models",
-            )
-            # T5 encoder in int4
-            text_encoder_2 = NunchakuT5EncoderModel.from_pretrained(
-                "mit-han-lab/nunchaku-t5/awq-int4-flux.1-t5xxl.safetensors",
-                cache_dir="models",
-            )
-            tokenizer = CLIPTokenizer.from_pretrained(
-                bfl_repo,
-                subfolder="tokenizer",
-                torch_dtype=dtype,
-                clean_up_tokenization_spaces=True,
-                cache_dir="models",
-            )
-            tokenizer_2 = T5TokenizerFast.from_pretrained(
-                bfl_repo,
-                subfolder="tokenizer_2",
-                torch_dtype=dtype,
-                clean_up_tokenization_spaces=True,
-                cache_dir="models",
-            )
-            vae = AutoencoderKL.from_pretrained(
-                bfl_repo,
-                subfolder="vae",
-                torch_dtype=dtype,
-                cache_dir="models",
-            )
-            precision = (
-                get_precision()
-            )  # auto-detect your precision is 'int4' or 'fp4' based on your GPU
             transformer = NunchakuFluxTransformer2dModel.from_pretrained(
-                f"mit-han-lab/nunchaku-flux.1-dev/svdq-{precision}_r32-flux.1-dev.safetensors",
+                f"nunchaku-tech/nunchaku-flux.1-krea-dev/svdq-{get_precision()}_r32-flux.1-krea-dev.safetensors",
                 offload=self.config.get("OFFLOAD_T5", True),
             )
             # Set attention implementation to fp16
-            transformer.set_attention_impl("nunchaku-fp16")
+            # transformer.set_attention_impl("nunchaku-fp16")
 
-            params = {
-                "scheduler": scheduler,
-                "vae": vae,
-                "tokenizer": tokenizer,
-                "tokenizer_2": tokenizer_2,
-                "text_encoder": text_encoder,
-                "text_encoder_2": text_encoder_2,
-                "transformer": transformer,
-            }
-            self.pipe = FluxPipeline(**params)  # .to(device, dtype=dtype)
+            self.pipe = FluxPipeline.from_pretrained(
+                "black-forest-labs/FLUX.1-krea-dev",
+                torch_dtype=torch.bfloat16,
+                transformer=transformer,
+            )
 
             lora_config = self.config.get("FLUX_LORA", {})
             if lora_config.get("USE_LORA", False):
