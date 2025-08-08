@@ -2,7 +2,7 @@
 torch==2.7.0
 # Huggingface dependencies
 transformers[sentencepiece]==4.51.3
-hf-xet==1.0.2
+hf-xet==1.1.7
 diffusers==0.34.0
 accelerate==1.7.0
 datasets==3.6.0
