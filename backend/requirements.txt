@@ -2,7 +2,8 @@
 torch==2.7.0
 # Huggingface dependencies
 transformers[sentencepiece]==4.51.3
-diffusers==0.33.1
+hf-xet==1.1.7
+diffusers==0.34.0
 accelerate==1.7.0
 datasets==3.6.0
 huggingface-hub==0.34.3
@@ -33,11 +34,11 @@ triton-windows==3.3.1.post19; sys_platform == 'win32'
 triton==3.3.0; sys_platform == 'linux'
 
 #  ——— Linux wheels ———
-nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.0+torch2.7-cp310-cp310-linux_x86_64.whl; sys_platform == "linux" and python_version == "3.10"
-nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.0+torch2.7-cp311-cp311-linux_x86_64.whl; sys_platform == "linux" and python_version == "3.11"
-nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.0+torch2.7-cp312-cp312-linux_x86_64.whl; sys_platform == "linux" and python_version == "3.12"
+nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.1+torch2.7-cp310-cp310-linux_x86_64.whl; sys_platform == "linux" and python_version == "3.10"
+nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.1+torch2.7-cp311-cp311-linux_x86_64.whl; sys_platform == "linux" and python_version == "3.11"
+nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.1+torch2.7-cp312-cp312-linux_x86_64.whl; sys_platform == "linux" and python_version == "3.12"
 
 #  ——— Windows wheels ———
-nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.0+torch2.7-cp310-cp310-win_amd64.whl; sys_platform == "win32" and python_version == "3.10"
-nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.0+torch2.7-cp311-cp311-win_amd64.whl; sys_platform == "win32" and python_version == "3.11"
-nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.0+torch2.7-cp312-cp312-win_amd64.whl; sys_platform == "win32" and python_version == "3.12"
+nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.1+torch2.7-cp310-cp310-win_amd64.whl; sys_platform == "win32" and python_version == "3.10"
+nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.1+torch2.7-cp311-cp311-win_amd64.whl; sys_platform == "win32" and python_version == "3.11"
+nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.1+torch2.7-cp312-cp312-win_amd64.whl; sys_platform == "win32" and python_version == "3.12"
