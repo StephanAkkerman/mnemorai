@@ -31,7 +31,7 @@ uvicorn[standard]==0.34.3
 xformers==0.0.30
 # flash_attn==2.7.3; sys_platform == 'linux'
 triton-windows==3.3.1.post19; sys_platform == 'win32'
-triton==3.3.0; sys_platform == 'linux'
+triton==3.4.0; sys_platform == 'linux'
 
 #  ——— Linux wheels ———
 nunchaku @ https://huggingface.co/mit-han-lab/nunchaku/resolve/main/nunchaku-0.3.1+torch2.7-cp310-cp310-linux_x86_64.whl; sys_platform == "linux" and python_version == "3.10"
